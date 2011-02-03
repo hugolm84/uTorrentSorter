@@ -1,83 +1,69 @@
-#requires -version 2
-Param([String]$TORRENT_NAME, [String]$TORRENT_DIR);
-##Edit this please:###############################################################
-
-	# Set the baseDir for your sorting and unpacking							
-		$baseMovieDIR = "F:\media\movies\";										
-		$baseTvDIR = "F:\media\tv\"												
-	# set the correct path to winRar	
-		$winRar = "C:\Program Files\WinRAR\";				
+Param(
+	[parameter(Mandatory = $true)][String]$TORRENT_NAME, 
+	[parameter(Mandatory = $true)][String]$TORRENT_DIR, 
+	## EDIT ->>
+	# Set the baseDir for your sorting and unpacking	
+	[String]$BASE_MOVIE_DIR = "F:\media\movies\", 
+	[String]$BASE_TV_DIR = "F:\media\tv\", 
 	# Want to enable loggin if there is errors?	
 	# If Set to NO, it will only be outputted in console
-		$enableLogging = "NO";
-##End of edit#####################################################################
+	[String]$LOGG = "YES",
+	# Set the correct path to winRar	
+	[String]$WINRAR = "C:\Program Files\WinRAR\"
+	## <<- END OF EDIT
+	)
 
 # Set scriptPath first
 $scriptPath = Split-Path -parent $MyInvocation.MyCommand.Definition;
-# LoggFunction
-function logThis(){
-	Param([string] $logThis)
+
+function Write-Log{
+	Param([string] $WriteLog)
 	$date = Get-Date;
-	$loggStr = "$date : $logThis"
-	if($enableLogging -eq "YES"){
-		$loggStr >> $scriptPath\logFile.txt
+	$loggStr = "$date : $WriteLog"
+	
+	if($LOGG -eq "YES"){
+		$loggStr >> $scriptPath\logFile.log
 	}else{
-		write-output $logThis;
+		write-output $WriteLog;
 	}
 }
 
 # Test crucial dirs and drives
-$driveOnMovieBase = (New-Object System.IO.DriveInfo($baseMovieDIR)).DriveType -ne 'NoRootDirectory';
-$driveOnTvBase = (New-Object System.IO.DriveInfo($baseTvDIR)).DriveType -ne 'NoRootDirectory';
-if(-not($driveOnMovieBase)){ logThis "No Movie Drive!";break  }
-if(-not($driveOnTvBase)){ logThis "No Tv Drive!"; break; }     
-if(-not(Test-Path $winRar)){ logThis "Can not find WinRar in path!"; break; }
+$driveOnMovieBase = (New-Object System.IO.DriveInfo($BASE_MOVIE_DIR)).DriveType -ne 'NoRootDirectory'
+$driveOnTvBase = (New-Object System.IO.DriveInfo($BASE_TV_DIR)).DriveType -ne 'NoRootDirectory'
+	if(-not($driveOnMovieBase)){ Write-Log "No Movie Volume!" break  }
+	if(-not($driveOnTvBase)){ Write-Log "No Tv Volume!" break }     
+	if(-not(Test-Path $WINRAR)){ Write-Log "Can not find WinRar in path!" break }
 # Test End
 
 # Add paths to env:path
-	$env:Path = $env:Path + ";$scriptPath\bin";		
-	$env:Path = $env:Path + ";$winRar";	
+$env:Path = $env:Path + ";$scriptPath\bin";		
+$env:Path = $env:Path + ";$WINRAR";	
 
 # Set dirs, create if not exist
 # Note: You can edit the names of these, but that would break the script. 
 # To edit or add, you need to edit/add regex in getData
-$unpackMovieDIR = $baseMovieDIR+"unpacked\"+$TORRENT_NAME;
-$unpackTvDIR = $baseTvDIR+"unpacked\"+$TORRENT_NAME;
-$movieDIRS = ("unpacked", "sorted\genre", "sorted\rating", "sorted\year", "sorted\title", "sorted\metascore");
-$tvDIRS = ("unpacked", "sorted\genre", "sorted\title");
-# Create the basedirs
-if(-not(Test-Path $baseMovieDIR)){ 
-	mkdir $baseMovieDIR;
-	if(-not(Test-Path $baseMovieDIR)){ 
-		logThis "Could not create Movie BaseDir!" 
-		break;
+$unpackToMovieDir = "${BASE_MOVIE_DIR}unpacked\$TORRENT_NAME";
+$unpackToTvDir = "${BASE_TV_DIR}unpacked\$TORRENT_NAME";
+$movieDirs = ("unpacked", "sorted\genre", "sorted\rating", "sorted\year", "sorted\title", "sorted\metascore");
+$tvDirs = ("unpacked", "sorted\genre", "sorted\title");
+
+# Create movie and tv dirs
+$dirs = @(foreach($dir in $movieDirs){ 
+			Join-Path $BASE_MOVIE_DIR $dir 
+		}) + 
+		@(foreach($dir in $tvDirs){ 
+			Join-Path $BASE_TV_DIR $dir 
+		})
+	md $dirs -Force -ErrorAction Stop | Out-Null
+
+	if( (Test-Path $dirs -type container) -contains $false ) { 
+		throw "Some folders weren't created because there were files in the way, I can't figure out what to do about that" 
 	}
-}
-# Foreach dir in movieDIRS, create them if not exist
-foreach($DIR in $movieDIRS){
-	$symMovieDIR = $baseMovieDIR+$DIR;
-	
-	if(-not (Test-Path $symMovieDIR)){
-		mkdir $symMovieDIR;
-		if(-not (Test-Path $symMovieDIR)){
-			break {logThis "Could not create Movie DIRS!"}
-		}
-	}
-}
-# Foreach dir in tvDIRS, create them if not exist
-foreach($DIR in $tvDIRS){
-	$symTvDIR = $baseTvDir+$DIR;
-	
-	if(-not (Test-Path $symTvDIR)){
-		mkdir $symTvDIR;
-		if(-not (Test-Path $symTvDIR)){
-			break {logThis "Could not create Tv DIRS!"}
-		}
-	}
-}
+
 
 # check the NFO for imdb och tvrage link
-function checkNFO(){
+function Test-NFO{
 	if(Test-Path $TORRENT_DIR){
 		$nfoItem = get-childitem $TORRENT_DIR -recurse | where {$_.extension -eq ".nfo"}
 		if($nfoItem){
@@ -97,38 +83,38 @@ function checkNFO(){
 }
 
 # Set the path for TV or Movie
-function setPath(){
-	Param($res)
-	if($res['type'] -eq "Tv"){
-		return $unpackTvDIR;
+function Set-Path{
+	Param($ret)
+	if($ret['type'] -eq "Tv"){
+		return $unpackToTvDir;
 	}
-	if($res['type'] -eq "Movie"){
-		return $unpackMovieDIR;
+	if($ret['type'] -eq "Movie"){
+		return $unpackToMovieDir;
 	}
-	if(!$res['type']){
+	if(!$ret['type']){
 		return "Error";
 	}
 }
 
-# Unrar Function. 
+
 # Unrars every *.rar file recursivly. that is, CD1 CD2, subs and so on
-function doUnrar(){
-	Param($unpackDir)
+function Extract-Rar{
+	Param($unpackDestination)
 	if(Test-Path $TORRENT_DIR){
-		if(-not($unpackDir -eq "Error")){
+		if(-not($unpackDestination -eq "Error")){
 			
-			if(-not(Test-Path $unpackDIR)){
-				md $unpackDIR;
+			if(-not(Test-Path $unpackDestination)){
+				md $unpackDestination;
 			}
 			$rarItems = Get-ChildItem $TORRENT_DIR -recurse -Filter *.rar | Select-Object -ExpandProperty FullName
 			foreach($item in $rarItems){
-				& unrar e -o- $item $unpackDIR;
+				& unrar e -o- $item $unpackDestination;
 			}
-			# Unrars sub item and then removes the package. This is in the unpacked folder and not Original folder
-			$subItems = Get-ChildItem $unpackDIR -recurse -Filter *.rar | Select-Object -ExpandProperty FullName
+			# Unrars sub item and then removes the package. This is in the unpacked destination folder and not Original folder
+			$subItems = Get-ChildItem $unpackDestination -recurse -Filter *.rar | Select-Object -ExpandProperty FullName
 			if($subItems){
 				foreach($item in $subItems){
-					& unrar e -o- $item $unpackDIR;
+					& unrar e -o- $item $unpackDestination;
 					ri $item;
 				}
 			}
@@ -137,7 +123,7 @@ function doUnrar(){
 }
 
 # Get data from IMDB, based on nfo URL
-function getIMDbData { 
+function Get-IMDb-Data{ 
     param([string] $url) 
     $wc = New-Object System.Net.WebClient 
     $data = $wc.downloadstring($url) 
@@ -149,44 +135,44 @@ function getIMDbData {
 	$metascore = ([regex]'(?<=<span class="nobr">Metascore\S\s*<strong>)([\S\s]*?)(?=</strong>)').Match($data).value.trim();
 	$byTitle = $title.substring(0,1);
 	return $ret = @{title = $title;
-					bytitle = $baseMovieDIR+"sorted\title\"+$byTitle+"\"+$title;
-					year = $baseMovieDIR+"sorted\year\"+$year;
-					rating = $baseMovieDIR+"sorted\rating\"+$rating; 
-					metascore = $baseMovieDIR+"sorted\metascore\"+$metascore;
-					genre1 = $baseMovieDIR+"sorted\genre\"+$genre1;
-					genre2 = $baseMovieDIR+"sorted\genre\"+$genre2;
-					genre3 = $baseMovieDIR+"sorted\genre\"+$genre3}; 
+					bytitle = "${BASE_MOVIE_DIR}sorted\title\$byTitle\$title";
+					year = "${BASE_MOVIE_DIR}sorted\year\$year";
+					rating = "${BASE_MOVIE_DIR}sorted\rating\$rating"; 
+					metascore = "${BASE_MOVIE_DIR}sorted\metascore\$metascore";
+					genre1 = "${BASE_MOVIE_DIR}sorted\genre\$genre1";
+					genre2 = "${BASE_MOVIE_DIR}sorted\genre\$genre2";
+					genre3 = "${BASE_MOVIE_DIR}sorted\genre\$genre3"
+					}; 
 
 	}
 
 # Get data from tvRage, based on nfo URL
-function getTvRageData { 
+function Get-TVrage-Data { 
 	Param($url)
 	$season = $TORRENT_NAME -replace '.*s(.*)e.*','$1';
 	$title, $genres = (get-webfile http://services.tvrage.com/tools/quickinfo.php?show=$url -passthru ) -split "`n" | select -index 1,13
-	$title = $title -replace "Show Name@", "";
-	$title = $title -replace ":", "";
-	$title = $title -replace " ", "_";
+	$title = $title -replace "Show Name@" -replace ":" -replace " ", "_";
 	$genres = $genres -replace "Genres@", "";
-	$genre1,$genre2,$genre3 = $genres.split("|");
+	$genre1,$genre2,$genre3 = $genres.split("|")|%{$_.trim()}
 	return $ret = @{title = $title;
-					season = $baseTvDIR+"sorted\title\"+$title+"\season_"+$season;
-					genre1 = $baseTvDIR+"sorted\genre\"+$genre1.trim();
-					genre2 = $baseTvDIR+"sorted\genre\"+$genre2.trim();
-					genre3 = $baseTvDIR+"sorted\genre\"+$genre3.trim()}; 
+					season = "${BASE_TV_DIR}sorted\title\$title\season_$season";
+					genre1 = "${BASE_TV_DIR}sorted\genre\$genre1";
+					genre2 = "${BASE_TV_DIR}sorted\genre\$genre2";
+					genre3 = "${BASE_TV_DIR}sorted\genre\$genre3";
+					} 
 	}
 
 # Create symlinks for the torrent, this will link to the unpacked dir	
-function createSymLinks(){
-	Param($unpackDir, $data);
+function Create-SymLinks{
+	Param($path, $data)
 	if($data){
 		foreach ($key in $data.keys -ne 'title') {
 			if(-not (Test-Path $data.$key)){
-				mkdir $data.$key; 
+				md $data.$key; 
 			}
-			$value = $data.$key;
-			$dir = $value+"\"+$TORRENT_NAME;
-			mklnk -a $unpackDir c:\windows\explorer.exe $dir;
+
+			$dir = Join-Path $data.$key $TORRENT_NAME
+			mklnk -a $path c:\windows\explorer.exe $dir;
 		}
 	}
 }
@@ -292,38 +278,132 @@ function Get-WebFile {
    }
    if(Test-Path variable:res) { $res.Close(); }
 }
+
 ################################################################
 ################################################################
 
 # Now we can Execute this, Instantiate, if you will
-$nfo = checkNFO;
+$nfo = Test-NFO;
 if(!$nfo){
-
-	logThis "Could not find an NFO!";
-
-}elseif(!$nfo['type']){
-	logThis "Could not determine type!";
-}elseif(!$nfo['url']){
-	logThis "Could not find an URL!";
+	Write-Log "Could not find an NFO!";
 }elseif($nfo){
 	if(!$nfo['type']){
-		logThis "Could not determine type!";
+		Write-Log "Could not determine type!";
 	}elseif(!$nfo['url']){
-		logThis "Could not find an URL!";
-		
+		Write-Log "Could not find an URL!";
 	}else{
 	
 		# First, check the type from nfo and set path
 		if($nfo['type'] -eq "Movie"){
-			$path = setPath $nfo;
-			$typeInfo = getIMDbData $nfo['url'];
+			$path = Set-Path $nfo;
+			$typeInfo = Get-IMDb-Data $nfo['url'];
 		}elseif($nfo['type'] -eq "Tv"){
-			$path = setPath $nfo;
-			$typeInfo = getTvRageData $nfo['url'];
+			$path = Set-Path $nfo;
+			$typeInfo = Get-TVrage-Data $nfo['url'];
 		}
 		# Will now unpack to $path
-		doUnrar $path;
+		Extract-Rar $path;
 		# And create symlinks
-		createSymLinks $path $typeInfo;
+		Create-SymLinks $path $typeInfo;
 	}
 }
+<#
+.SYNOPSIS 
+	Automates the logic of sorting downloaded movie and tv torrents.
+
+.DESCRIPTION
+ .
+	@TYPE
+		
+		POWERSHELL 2.0									
+	
+	@WHAT:
+		
+		uTORRENT onComplete run program 	
+	
+	@AUTHOR: 
+		
+		uffepuffe				
+	
+	@DATE:
+		
+		2011	
+	
+	@USAGE:
+		
+		ADD THIS in uTorrent			
+		
+			powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'	
+		
+		OR THIS if you want to read the output
+			
+			powershell.exe C:\PathToThisSCRIPT.ps1 -noexit -TORRENT_NAME '%N' -TORRENT_DIR '%D'	
+		
+		IF you want to specify the Paths directly you can do
+			
+			powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'-BASE_MOVIE_DIR "C:\PATH"
+		
+		IF you want to disable/enable loggin
+			
+			powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'-LOGG "NO/YES"
+		
+		IF you want to alter the winRAR path
+			
+			powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'-WINRAR "D:\PATH_TO_WINRAR"			
+	
+	@TODO: 
+		
+		Tv Episodes that are DVDrips probebly has an IMDB link and not a
+		TvRage link, wich means that the TV Show DVDrip is treated as a 
+		Movie. This should be fixed later somehow.
+	
+	@DEPENDENCIES: 
+		
+		\bin\mklnk.exe (included), winRAR (not included), uTorrent	
+		mklnk is Copyright (c) 2005-2006 Ross Smith II (http://smithii.com) All Rights Reserved
+	
+	
+	@INFORMATION:
+		
+		So, almost everybody run Windows 7 or Vista these days. If you do, Powershell is inlcuded and to test that
+		you have it installed, open a command promt (run -> cmd) and type powershell $psversiontable
+		
+		Output:
+		
+		C:\Windows\System32>powershell $psversiontable
+		
+		Name                           Value
+		----                           -----
+		PSVersion                      2.0
+		
+		So, if this works, and PSVersion = 2.0 we are good to go.
+		
+		THEN:
+		
+		Type> Get-ExecutionPolicy
+		Output> Restricted
+		
+		If the output says Restricted, it means that the default value is still set. Change this by doing
+		
+		Type> Set-ExecutionPolicy RemoteSigned
+		Read more here: http://technet.microsoft.com/en-us/library/ee176949.aspx
+		
+		Else:
+		
+		goto http://support.microsoft.com/kb/968929
+		scroll to
+		Windows Management Framework Core (WinRM 2.0 and Windows PowerShell 2.0)
+		Download for your windows version
+		Install
+		OR: 
+		Do a system update. It should be included.
+
+.LINK
+	.
+	@SCREENCASTs:
+		@How it operates
+			http://www.swfcabin.com/open/1296729486
+		@How to set Execution Policy
+			http://www.swfcabin.com/open/1296731645
+
+#>
