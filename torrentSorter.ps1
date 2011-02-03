@@ -402,8 +402,9 @@ if(!$nfo){
 	.
 	@SCREENCASTs:
 		@How it operates
-			
+			http://www.swfcabin.com/open/1296763224
 		@How to set Execution Policy
+			http://www.swfcabin.com/open/1296731645	
 			
 
 #>
