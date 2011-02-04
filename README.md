@@ -6,13 +6,13 @@ SYNOPSIS
 DESCRIPTION
 ===========
 
-	Type:
-	-----	
+Type:
+-----	
 
-		POWERSHELL 2.0									
+POWERSHELL 2.0									
 	
 What:
-	-----
+-----
 
 		uTORRENT onComplete run program 	
 	Author:
