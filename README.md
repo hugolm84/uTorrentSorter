@@ -44,29 +44,31 @@ USAGE
 
 TODO
 =====
-	Tv Episodes that are DVDrips probebly has an IMDB link and not a TvRage link, 
-	wich means that the TV Show DVDrip is treated as a Movie. 
-	This should be fixed later somehow.
+Tv Episodes that are DVDrips probebly has an IMDB link and not a TvRage link, wich means that the TV Show DVDrip is treated as a Movie. 
+This should be fixed later somehow.
 
 DEPENDENCIES
 ============
-	bin\mklnk.exe (included), 
-	bin\taglib-sharp.dll(included), 
-	winRAR (not included), 
-	uTorrent (not included), 	
+	bin\mklnk.exe (included)
 	
-	Authors:
-	mklnk is Copyright (c) 2005-2006 Ross Smith II (http://smithii.com) All Rights Reserved
-	taglib-sharp.dll is Copyright (c) http://code.google.com/p/thelastripper/source/browse/trunk/taglib-sharp/taglib-sharp.dll?r=176
+	bin\taglib-sharp.dll(included)
+	
+	winRAR (not included)
+	
+	uTorrent (not included) 	
+	
+###Authors:
+mklnk is Copyright (c) 2005-2006 Ross Smith II (http://smithii.com) All Rights Reserved
+taglib-sharp.dll is Copyright (c) http://code.google.com/p/thelastripper/source/browse/trunk/taglib-sharp/taglib-sharp.dll?r=176
 
 
 INFORMATION
 ===========
 ### Implementation
 So, almost everybody run Windows 7 or Vista these days. If you do, Powershell is inlcuded and to test that
-you have it installed, open a command promt 
-	
-	(run -> cmd) and type powershell $psversiontable
+you have it installed, open a command promt run -> cmd) and type 
+
+	powershell $psversiontable
 
 ####Output:
 
@@ -87,7 +89,7 @@ So, if this works, and PSVersion = 2.0 we are good to go.
 If the output says Restricted, it means that the default value is still set. Change this by doing
 
 	Type> Set-ExecutionPolicy RemoteSigned
-	Read more here: http://technet.microsoft.com/en-us/library/ee176949.aspx
+Read more here: http://technet.microsoft.com/en-us/library/ee176949.aspx
 
 ###Else:
 
