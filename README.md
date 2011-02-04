@@ -44,7 +44,8 @@ USAGE
 
 TODO
 =====
-	Tv Episodes that are DVDrips probebly has an IMDB link and not a TvRage link, wich means that the TV Show DVDrip is treated as a Movie. 
+	Tv Episodes that are DVDrips probebly has an IMDB link and not a TvRage link, 
+	wich means that the TV Show DVDrip is treated as a Movie. 
 	This should be fixed later somehow.
 
 DEPENDENCIES
@@ -61,10 +62,11 @@ DEPENDENCIES
 
 INFORMATION
 ===========
+	### Implementation
 	So, almost everybody run Windows 7 or Vista these days. If you do, Powershell is inlcuded and to test that
 	you have it installed, open a command promt (run -> cmd) and type powershell $psversiontable
 
-	Output:
+	####Output:
 
 	C:\Windows\System32>powershell $psversiontable
 
