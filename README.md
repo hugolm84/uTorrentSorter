@@ -4,13 +4,13 @@ Automates the logic of sorting downloaded movie and tv torrents.
 
 DESCRIPTION
 ===========
-Type:
+###Type:
 	POWERSHELL 2.0									
-What:
+###What:
 	uTORRENT onComplete run program 	
-Author:
+###Author:
 	ulf@flashback				
-Usage:
+###Usage:
 
 ### ADD THIS in uTorrent	
 
