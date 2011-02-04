@@ -5,9 +5,10 @@ Param(
 	# Set the baseDir for your sorting and unpacking	
 	[String]$BASE_MOVIE_DIR = "F:\media\movies\", 
 	[String]$BASE_TV_DIR = "F:\media\tv\", 
+	[String]$BASE_MUSIC_DIR = "F:\media\music",
 	# Want to enable loggin if there is errors?	
 	# If Set to NO, it will only be outputted in console
-	[String]$LOGG = "YES",
+	[String]$LOGG = "NO",
 	# Set the correct path to winRar	
 	[String]$WINRAR = "C:\Program Files\WinRAR\"
 	## <<- END OF EDIT
@@ -16,6 +17,7 @@ Param(
 # Set scriptPath first
 $scriptPath = Split-Path -parent $MyInvocation.MyCommand.Definition;
 
+# Write-Log function
 function Write-Log{
 	Param([string] $WriteLog)
 	$date = Get-Date;
@@ -31,8 +33,10 @@ function Write-Log{
 # Test crucial dirs and drives
 $driveOnMovieBase = (New-Object System.IO.DriveInfo($BASE_MOVIE_DIR)).DriveType -ne 'NoRootDirectory'
 $driveOnTvBase = (New-Object System.IO.DriveInfo($BASE_TV_DIR)).DriveType -ne 'NoRootDirectory'
+$driveOnMusicBase = (New-Object System.IO.DriveInfo($BASE_MUSIC_DIR)).DriveType -ne 'NoRootDirectory'
 	if(-not($driveOnMovieBase)){ Write-Log "No Movie Volume!" break  }
 	if(-not($driveOnTvBase)){ Write-Log "No Tv Volume!" break }     
+	if(-not($driveOnTvBase)){ Write-Log "No Music Volume!" break }     
 	if(-not(Test-Path $WINRAR)){ Write-Log "Can not find WinRar in path!" break }
 # Test End
 
@@ -60,7 +64,42 @@ $dirs = @(foreach($dir in $movieDirs){
 	if( (Test-Path $dirs -type container) -contains $false ) { 
 		throw "Some folders weren't created because there were files in the way, I can't figure out what to do about that" 
 	}
+	
+# Test for an mp3 file
+function Test-MP3{
+	if(Test-Path $TORRENT_DIR){
+		$mp3Item = Get-ChildItem $TORRENT_DIR -recurse -Filter *.mp3 | Select-Object -ExpandProperty FullName -First 1
+		if($mp3Item){
+			return $mp3Item
+		}
+	}
+}
 
+# Add the symlink to the mp3 archive
+function Add-ToMP3Archive{
+	Param($mp3Item)
+	# Load the id3 lib
+	[Reflection.Assembly]::LoadFrom( "$scriptPath\bin\taglib-sharp.dll") 
+	$media = [TagLib.File]::Create($mp3Item)
+	foreach($tag in $media.Tag){ 
+
+		if(-not($tag.Title) -OR (-not($tag.Album)) -OR (-not($tag.Year)) -OR (-not($tag.FirstArtist)) -OR (-not($tag.FirstGenre))){ 
+			throw "I need a Title, Album, Year, Artist, Genre to work!"
+		}
+		else{ 
+			$byArtist = $tag.FirstArtist.substring(0,1)
+			$artist = $tag.FirstArtist -replace ":" -replace " ", "_"
+			$album = $tag.Album -replace ":" -replace " ", "_"
+			$genre = $tag.FirstGenre -replace ":" -replace " ", "_"
+			# Archive A-Z
+			# It is here we will place the symlink $album
+			$archiveToMusicDir = "$BASE_MUSIC_DIR\$genre\$byArtist\$artist\"
+			md $archiveToMusicDir -Force -ErrorAction Stop | Out-Null
+			mklnk -a $TORRENT_DIR c:\windows\explorer.exe "$archiveToMusicDir\$album"
+			write-output "Created $archiveToMusicDir\$album"
+		}
+	}
+}
 
 # check the NFO for imdb och tvrage link
 function Test-NFO{
@@ -95,7 +134,6 @@ function Set-Path{
 		return "Error";
 	}
 }
-
 
 # Unrars every *.rar file recursivly. that is, CD1 CD2, subs and so on
 function Extract-Rar{
@@ -283,28 +321,33 @@ function Get-WebFile {
 ################################################################
 
 # Now we can Execute this, Instantiate, if you will
-$nfo = Test-NFO;
-if(!$nfo){
-	Write-Log "Could not find an NFO!";
-}elseif($nfo){
-	if(!$nfo['type']){
-		Write-Log "Could not determine type!";
-	}elseif(!$nfo['url']){
-		Write-Log "Could not find an URL!";
-	}else{
-	
-		# First, check the type from nfo and set path
-		if($nfo['type'] -eq "Movie"){
-			$path = Set-Path $nfo;
-			$typeInfo = Get-IMDb-Data $nfo['url'];
-		}elseif($nfo['type'] -eq "Tv"){
-			$path = Set-Path $nfo;
-			$typeInfo = Get-TVrage-Data $nfo['url'];
+$mp3 = Test-MP3
+if($mp3){
+Add-ToMP3Archive $mp3
+}else{
+	$nfo = Test-NFO
+	if(!$nfo){
+		Write-Log "Could not find an NFO!";
+	}elseif($nfo){
+		if(!$nfo['type']){
+			Write-Log "Could not determine type!";
+		}elseif(!$nfo['url']){
+			Write-Log "Could not find an URL!";
+		}else{
+		
+			# First, check the type from nfo and set path
+			if($nfo['type'] -eq "Movie"){
+				$path = Set-Path $nfo
+				$typeInfo = Get-IMDb-Data $nfo['url']
+			}elseif($nfo['type'] -eq "Tv"){
+				$path = Set-Path $nfo
+				$typeInfo = Get-TVrage-Data $nfo['url']
+			}
+			# Will now unpack to $path
+			Extract-Rar $path
+			# And create symlinks
+			Create-SymLinks $path $typeInfo
 		}
-		# Will now unpack to $path
-		Extract-Rar $path;
-		# And create symlinks
-		Create-SymLinks $path $typeInfo;
 	}
 }
 <#
@@ -408,3 +451,5 @@ if(!$nfo){
 			
 
 #>
+
+
