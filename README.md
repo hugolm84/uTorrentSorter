@@ -5,11 +5,15 @@ SYNOPSIS
 
 DESCRIPTION
 ===========
+
 	Type:
 	-----	
+
 		POWERSHELL 2.0									
-	What:
+	
+What:
 	-----
+
 		uTORRENT onComplete run program 	
 	Author:
 	-------
