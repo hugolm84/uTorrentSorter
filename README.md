@@ -5,17 +5,13 @@ Automates the logic of sorting downloaded movie and tv torrents.
 DESCRIPTION
 ===========
 Type:
------	
-POWERSHELL 2.0									
+	POWERSHELL 2.0									
 What:
------
-uTORRENT onComplete run program 	
-
+	uTORRENT onComplete run program 	
 Author:
--------
-ulf@flashback				
+	ulf@flashback				
 Usage:
-------
+
 ### ADD THIS in uTorrent	
 
 > powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'	
