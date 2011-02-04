@@ -5,11 +5,11 @@ Automates the logic of sorting downloaded movie and tv torrents.
 DESCRIPTION
 ===========
 ###Type:
-	POWERSHELL 2.0									
+POWERSHELL 2.0									
 ###What:
-	uTORRENT onComplete run program 	
+uTORRENT onComplete run program 	
 ###Author:
-	ulf@flashback				
+ulf@flashback				
 
 USAGE
 ======
@@ -49,17 +49,15 @@ This should be fixed later somehow.
 
 DEPENDENCIES
 ============
-	bin\mklnk.exe (included)
-	
-	bin\taglib-sharp.dll(included)
-	
-	winRAR (not included)
-	
-	uTorrent (not included) 	
+*bin\mklnk.exe (included)
+*bin\taglib-sharp.dll(included)
+*winRAR (not included)
+*uTorrent (not included) 	
 	
 ###Authors:
-mklnk is Copyright (c) 2005-2006 Ross Smith II (http://smithii.com) All Rights Reserved
-taglib-sharp.dll is Copyright (c) http://code.google.com/p/thelastripper/source/browse/trunk/taglib-sharp/taglib-sharp.dll?r=176
+
+*mklnk is Copyright (c) 2005-2006 Ross Smith II (http://smithii.com) All Rights Reserved
+*taglib-sharp.dll is Copyright (c) http://code.google.com/p/thelastripper/source/browse/trunk/taglib-sharp/taglib-sharp.dll?r=176
 
 
 INFORMATION
