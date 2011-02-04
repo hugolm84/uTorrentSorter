@@ -1,6 +1,6 @@
 SYNOPSIS 
 ========
-Automates the logic of sorting downloaded movie and tv torrents.
+##Automates the logic of sorting downloaded movie and tv torrents.
 
 DESCRIPTION
 ===========
