@@ -1,17 +1,118 @@
+<#
+.SYNOPSIS 
+	Automates the logic of sorting downloaded movie and tv torrents.
+.DESCRIPTION
+	Type:
+		POWERSHELL 2.0									
+	What:
+		uTORRENT onComplete run program 	
+	Author:
+		ulf@flashback				
+	Usage:
+		ADD THIS in uTorrent	
+		
+			> powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'	
+			---------------------------------------------------------------------------
+		OR THIS if you want to read the output
+		
+			> powershell.exe C:\PathToThisSCRIPT.ps1 -noexit -TORRENT_NAME '%N' -TORRENT_DIR '%D'	
+			-----------------------------------------------------------------------------------
+		IF you want to specify the Paths directly you can do
+		
+			> powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'-BASE_MOVIE_DIR "C:\PATH"
+			------------------------------------------------------------------------------------------------------
+		IF you want to disable/enable loggin
+		
+			> powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'-LOGG "NO/YES"
+			-------------------------------------------------------------------------------------------
+		IF you want to alter the winRAR path
+		
+			> powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'-WINRAR "D:\PATH_TO_WINRAR"
+			--------------------------------------------------------------------------------------------------------		
+		To get more information about the PARAMS
+		
+			> powershell get-help .\PathTOScript.ps1 -detailed
+			--------------------------------------------------
+	Todo: 
+	
+		Tv Episodes that are DVDrips probebly has an IMDB link and not a
+		TvRage link, wich means that the TV Show DVDrip is treated as a 
+		Movie. This should be fixed later somehow.
+	
+	Dependencies: 
+		
+		\bin\mklnk.exe (included), winRAR (not included), uTorrent	
+		mklnk is Copyright (c) 2005-2006 Ross Smith II (http://smithii.com) All Rights Reserved
+	
+	
+	Information:
+		
+		So, almost everybody run Windows 7 or Vista these days. If you do, Powershell is inlcuded and to test that
+		you have it installed, open a command promt (run -> cmd) and type powershell $psversiontable
+		
+		Output:
+		
+		C:\Windows\System32>powershell $psversiontable
+		
+		Name                           Value
+		----                           -----
+		PSVersion                      2.0
+		
+		
+		So, if this works, and PSVersion = 2.0 we are good to go.
+		
+		Then:
+		
+		Type> Get-ExecutionPolicy
+		Output> Restricted
+		
+		If the output says Restricted, it means that the default value is still set. Change this by doing
+		
+		Type> Set-ExecutionPolicy RemoteSigned
+		Read more here: http://technet.microsoft.com/en-us/library/ee176949.aspx
+		
+		Else:
+		
+		goto http://support.microsoft.com/kb/968929
+		scroll to
+			Windows Management Framework Core (WinRM 2.0 and Windows PowerShell 2.0)
+		Download for your windows version
+			Install
+		OR: 
+			Do a system update. It should be included.
+
+.LINK
+	Github:
+		https://github.com/mline/uTorrentSorter
+	Screencasts:
+		How it operates
+			http://www.swfcabin.com/open/1296763224
+			http://www.swfcabin.com/open/1296814280
+		How to set Execution Policy
+			http://www.swfcabin.com/open/1296731645	
+	
+#>
 Param(
+	# This is the Name Parameter sent from the Torrent Client
 	[parameter(Mandatory = $true)][String]$TORRENT_NAME, 
+	# This is the Dir Parameter sent from the Torrent Client
 	[parameter(Mandatory = $true)][String]$TORRENT_DIR, 
-	## EDIT ->>
-	# Set the baseDir for your sorting and unpacking	
+	# Set the baseDir for your Movies	
 	[String]$BASE_MOVIE_DIR = "F:\media\movies\", 
+	# Set the baseDir for your TV shows
 	[String]$BASE_TV_DIR = "F:\media\tv\", 
-	[String]$BASE_MUSIC_DIR = "F:\media\music",
-	# Want to enable loggin if there is errors?	
+	# Set the baseDir for your Music
+	[String]$BASE_MUSIC_DIR = "F:\media\music\",
+	# Option to unpack or not
+	[String]$UNPACK = "YES",
+	# Set the Unpack dir for your Movies
+	[String]$UNPACK_MOVIE_TO_DIR = "${BASE_MOVIE_DIR}unpacked\$TORRENT_NAME",
+	# Set the Unpack dir for your Tv shows
+	[String]$UNPACK_TV_TO_DIR = "${BASE_TV_DIR}unpacked\$TORRENT_NAME",
 	# If Set to NO, it will only be outputted in console
 	[String]$LOGG = "NO",
 	# Set the correct path to winRar	
 	[String]$WINRAR = "C:\Program Files\WinRAR\"
-	## <<- END OF EDIT
 	)
 
 # Set scriptPath first
@@ -41,16 +142,16 @@ $driveOnMusicBase = (New-Object System.IO.DriveInfo($BASE_MUSIC_DIR)).DriveType 
 # Test End
 
 # Add paths to env:path
-$env:Path = $env:Path + ";$scriptPath\bin";		
-$env:Path = $env:Path + ";$WINRAR";	
+$env:Path = $env:Path + ";$scriptPath\bin"	
+$env:Path = $env:Path + ";$WINRAR"
+
 
 # Set dirs, create if not exist
 # Note: You can edit the names of these, but that would break the script. 
 # To edit or add, you need to edit/add regex in getData
-$unpackToMovieDir = "${BASE_MOVIE_DIR}unpacked\$TORRENT_NAME";
-$unpackToTvDir = "${BASE_TV_DIR}unpacked\$TORRENT_NAME";
-$movieDirs = ("unpacked", "sorted\genre", "sorted\rating", "sorted\year", "sorted\title", "sorted\metascore");
-$tvDirs = ("unpacked", "sorted\genre", "sorted\title");
+
+$movieDirs = ("unpacked", "by_genre", "by_rating", "by_year", "by_title", "by_metascore", "by_group")
+$tvDirs = ("unpacked", "by_genre", "by_title", "by_group")
 
 # Create movie and tv dirs
 $dirs = @(foreach($dir in $movieDirs){ 
@@ -68,46 +169,70 @@ $dirs = @(foreach($dir in $movieDirs){
 # Test for an mp3 file
 function Test-MP3{
 	if(Test-Path $TORRENT_DIR){
-		$mp3Item = Get-ChildItem $TORRENT_DIR -recurse -Filter *.mp3 | Select-Object -ExpandProperty FullName -First 1
-		if($mp3Item){
-			return $mp3Item
+		$mp3Items = Get-ChildItem $TORRENT_DIR -Recurse -Filter *.mp3 | Group-Object DirectoryName | ForEach-Object { $_.Group | Select-Object DirectoryName, FullName -First 1}
+		if($mp3Items){
+			return $mp3Items
 		}
 	}
 }
 
 # Add the symlink to the mp3 archive
-function Add-ToMP3Archive{
-	Param($mp3Item)
+function Add-MP3ToArchive{
+	Param($mp3Items)
 	# Load the id3 lib
 	[Reflection.Assembly]::LoadFrom( "$scriptPath\bin\taglib-sharp.dll") 
-	$media = [TagLib.File]::Create($mp3Item)
-	foreach($tag in $media.Tag){ 
-
-		if(-not($tag.Title) -OR (-not($tag.Album)) -OR (-not($tag.Year)) -OR (-not($tag.FirstArtist)) -OR (-not($tag.FirstGenre))){ 
-			throw "I need a Title, Album, Year, Artist, Genre to work!"
-		}
-		else{ 
-			$byArtist = $tag.FirstArtist.substring(0,1)
-			$artist = $tag.FirstArtist -replace ":" -replace " ", "_"
-			$album = $tag.Album -replace ":" -replace " ", "_"
-			$genre = $tag.FirstGenre -replace ":" -replace " ", "_"
-			# Archive A-Z
-			# It is here we will place the symlink $album
-			$archiveToMusicDir = "$BASE_MUSIC_DIR\$genre\$byArtist\$artist\"
-			md $archiveToMusicDir -Force -ErrorAction Stop | Out-Null
-			mklnk -a $TORRENT_DIR c:\windows\explorer.exe "$archiveToMusicDir\$album"
-			write-output "Created $archiveToMusicDir\$album"
+	# Maybe we have multiple mp3 results, hence the foreach
+	foreach($mp3 in $mp3Items){
+		# Read the ID3 tags
+		$media = [TagLib.File]::Create($mp3.FullName)
+		# Foreach tag
+		foreach($tag in $media.Tag){ 
+			# Check if the curcial tags exists
+			if(-not($tag.Title) -OR (-not($tag.Album)) -OR (-not($tag.Year)) -OR (-not($tag.FirstArtist)) -OR (-not($tag.FirstGenre))){ 
+				throw "I need a Title, Album, Year, Artist, Genre to work!"
+			}
+			# Append the vars 
+			else{ 
+				$byArtist = $tag.FirstArtist.substring(0,1)
+				$artist = $tag.FirstArtist -replace ":" -replace " ", "_" -replace "'"
+				$album = $tag.Album -replace ":" -replace " ", "_" -replace "'"
+				$genre = $tag.FirstGenre -replace ":" -replace " ", "_" -replace "'"
+				$year = $tag.Year -replace ":" -replace " ", "_" -replace "'"
+				# Get the what group released this
+				$group = ([regex]'([a-zA-Z]*)$').Match($mp3.DirectoryName).value.trim()
+				# rlsName, this is because maybe we have multiple rlsNames in one download
+				$rlsName = ([regex]'[^\\]*$').Match($mp3.DirectoryName).value.trim()
+				# Archive A-Z
+				# It is here we will place the symlink $album
+				$archiveToDirs = @("${BASE_MUSIC_DIR}sorted\by_genre\$genre",
+									"${BASE_MUSIC_DIR}sorted\by_year\$year",
+									"${BASE_MUSIC_DIR}sorted\by_artist\$byArtist\$artist",
+									"${BASE_MUSIC_DIR}sorted\by_group\$group"
+									)
+				# Forach dir create them						
+				foreach($dir in $archiveToDirs){					
+					md $dir -Force -ErrorAction Stop | Out-Null
+					mklnk -a $mp3.DirectoryName c:\windows\explorer.exe "$dir\$rlsName"
+					write-output "Created dirs for:" 
+					write-output "$dir\$rlsName"
+		
+				}
+			}
 		}
 	}
 }
 
 # check the NFO for imdb och tvrage link
 function Test-NFO{
+	# Does the torrent dir exist?
 	if(Test-Path $TORRENT_DIR){
+		# Find an nfo
 		$nfoItem = get-childitem $TORRENT_DIR -recurse | where {$_.extension -eq ".nfo"}
 		if($nfoItem){
+			# Now check wheter its a movie or tv
 			$isMovie = $nfoItem | Select-String "http://www.imdb.com/([\S]*)" | select -exp Matches | select -exp value
 			$isTV = $nfoItem | Select-String "http://www.tvrage.com/([\S]*)" | select -exp Matches | select -exp value
+			# Set the type
 			if($isMovie){ 
 				$url = $isMovie;
 				$type = "Movie";
@@ -121,30 +246,18 @@ function Test-NFO{
 	}
 }
 
-# Set the path for TV or Movie
-function Set-Path{
-	Param($ret)
-	if($ret['type'] -eq "Tv"){
-		return $unpackToTvDir;
-	}
-	if($ret['type'] -eq "Movie"){
-		return $unpackToMovieDir;
-	}
-	if(!$ret['type']){
-		return "Error";
-	}
-}
-
 # Unrars every *.rar file recursivly. that is, CD1 CD2, subs and so on
 function Extract-Rar{
 	Param($unpackDestination)
+	# Does the path exist?
 	if(Test-Path $TORRENT_DIR){
 		if(-not($unpackDestination -eq "Error")){
-			
+			# Create destination
 			if(-not(Test-Path $unpackDestination)){
 				md $unpackDestination;
 			}
 			$rarItems = Get-ChildItem $TORRENT_DIR -recurse -Filter *.rar | Select-Object -ExpandProperty FullName
+			# Unrar the files
 			foreach($item in $rarItems){
 				& unrar e -o- $item $unpackDestination;
 			}
@@ -160,43 +273,66 @@ function Extract-Rar{
 	}
 }
 
+# Set the path for TV or Movie
+function Set-Path{
+	Param($ret)
+	if($UNPACK -eq "YES"){
+		if($ret['type'] -eq "Tv"){
+			return $UNPACK_TV_TO_DIR;
+		}
+		if($ret['type'] -eq "Movie"){
+			return $UNPACK_MOVIE_TO_DIR;
+		}
+		if(!$ret['type']){
+			return "Error";
+		}
+	}else{ 
+		return $TORRENT_DIR
+	}	
+}
+
 # Get data from IMDB, based on nfo URL
 function Get-IMDb-Data{ 
     param([string] $url) 
-    $wc = New-Object System.Net.WebClient 
+	# Create a new webclient
+	$wc = New-Object System.Net.WebClient 
     $data = $wc.downloadstring($url) 
-    # $title = [regex] '(?<=<title>)([\S\s]*?)(?=</title>)' 
+	# Extract data
 	$title = ([regex]'(?<=<h1 class="header">)([\S\s]*?)(?=<span>)').Match($data).value.trim();
 	$year = ([regex]'(?<=<span>[(]<a href="/year/)(([\S\s]*?)+)(?=/">)').Match($data).value.trim().TrimEnd();
 	$rating = ([regex] '(?<=<span class="rating-rating">)(([\S\s]*?)+)(?=<span>)').Match($data).value.trim();
 	$genre1, $genre2, $genre3 = ([regex]'(?<=<a href="/genre/)(([\S\s]*?)+)(?=")').matches($data) | foreach {$_.Groups[1].Value}
 	$metascore = ([regex]'(?<=<span class="nobr">Metascore\S\s*<strong>)([\S\s]*?)(?=</strong>)').Match($data).value.trim();
 	$byTitle = $title.substring(0,1);
+	$group = ([regex]'([a-zA-Z]*)$').Match($TORRENT_NAME).value.trim();
 	return $ret = @{title = $title;
-					bytitle = "${BASE_MOVIE_DIR}sorted\title\$byTitle\$title";
-					year = "${BASE_MOVIE_DIR}sorted\year\$year";
-					rating = "${BASE_MOVIE_DIR}sorted\rating\$rating"; 
-					metascore = "${BASE_MOVIE_DIR}sorted\metascore\$metascore";
-					genre1 = "${BASE_MOVIE_DIR}sorted\genre\$genre1";
-					genre2 = "${BASE_MOVIE_DIR}sorted\genre\$genre2";
-					genre3 = "${BASE_MOVIE_DIR}sorted\genre\$genre3"
+					bytitle = "${BASE_MOVIE_DIR}by_title\$byTitle\$title";
+					year = "${BASE_MOVIE_DIR}by_year\$year";
+					rating = "${BASE_MOVIE_DIR}by_rating\$rating"; 
+					metascore = "${BASE_MOVIE_DIR}by_metascore\$metascore";
+					genre1 = "${BASE_MOVIE_DIR}by_genre\$genre1";
+					genre2 = "${BASE_MOVIE_DIR}by_genre\$genre2";
+					genre3 = "${BASE_MOVIE_DIR}by_genre\$genre3";
+					groupe = "${BASE_MOVIE_DIR}by_group\$group";
 					}; 
 
 	}
 
 # Get data from tvRage, based on nfo URL
 function Get-TVrage-Data { 
-	Param($url)
+	Param([String]$url)
 	$season = $TORRENT_NAME -replace '.*s(.*)e.*','$1';
 	$title, $genres = (get-webfile http://services.tvrage.com/tools/quickinfo.php?show=$url -passthru ) -split "`n" | select -index 1,13
 	$title = $title -replace "Show Name@" -replace ":" -replace " ", "_";
 	$genres = $genres -replace "Genres@", "";
 	$genre1,$genre2,$genre3 = $genres.split("|")|%{$_.trim()}
+	$group = ([regex]'([a-zA-Z]*)$').Match($TORRENT_NAME).value.trim();
 	return $ret = @{title = $title;
-					season = "${BASE_TV_DIR}sorted\title\$title\season_$season";
-					genre1 = "${BASE_TV_DIR}sorted\genre\$genre1";
-					genre2 = "${BASE_TV_DIR}sorted\genre\$genre2";
-					genre3 = "${BASE_TV_DIR}sorted\genre\$genre3";
+					season = "${BASE_TV_DIR}by_title\$title\season_$season";
+					genre1 = "${BASE_TV_DIR}by_genre\$genre1";
+					genre2 = "${BASE_TV_DIR}by_genre\$genre2";
+					genre3 = "${BASE_TV_DIR}by_genre\$genre3";
+					groupe = "${BASE_TV_DIR}by_group\$group"
 					} 
 	}
 
@@ -233,7 +369,7 @@ function Get-WebFile {
 
    $request = [System.Net.HttpWebRequest]::Create($url);
    $request.UserAgent = $(
-         "{0} (PowerShell {1}; .NET CLR {2}; {3}; http://PoshCode.org)" -f $UserAgent, 
+         "{0} (PowerShell {1}; .NET CLR {2}; {3}; http://imTryingToSort.org)" -f $UserAgent, 
          $(if($Host.Version){$Host.Version}else{"1.0"}),
          [Environment]::Version,
          [Environment]::OSVersion.ToString().Replace("Microsoft Windows ", "Win")
@@ -323,7 +459,7 @@ function Get-WebFile {
 # Now we can Execute this, Instantiate, if you will
 $mp3 = Test-MP3
 if($mp3){
-Add-ToMP3Archive $mp3
+	Add-MP3ToArchive $mp3
 }else{
 	$nfo = Test-NFO
 	if(!$nfo){
@@ -333,8 +469,7 @@ Add-ToMP3Archive $mp3
 			Write-Log "Could not determine type!";
 		}elseif(!$nfo['url']){
 			Write-Log "Could not find an URL!";
-		}else{
-		
+		}else{		
 			# First, check the type from nfo and set path
 			if($nfo['type'] -eq "Movie"){
 				$path = Set-Path $nfo
@@ -344,112 +479,11 @@ Add-ToMP3Archive $mp3
 				$typeInfo = Get-TVrage-Data $nfo['url']
 			}
 			# Will now unpack to $path
-			Extract-Rar $path
+			if($UNPACK -eq "YES"){
+				Extract-Rar $path
+			}
 			# And create symlinks
 			Create-SymLinks $path $typeInfo
 		}
 	}
 }
-<#
-.SYNOPSIS 
-	Automates the logic of sorting downloaded movie and tv torrents.
-
-.DESCRIPTION
- .
-	@TYPE
-		
-		POWERSHELL 2.0									
-	
-	@WHAT:
-		
-		uTORRENT onComplete run program 	
-	
-	@AUTHOR: 
-		
-		uffepuffe				
-	
-	@DATE:
-		
-		2011	
-	
-	@USAGE:
-		
-		ADD THIS in uTorrent			
-		
-			powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'	
-		
-		OR THIS if you want to read the output
-			
-			powershell.exe C:\PathToThisSCRIPT.ps1 -noexit -TORRENT_NAME '%N' -TORRENT_DIR '%D'	
-		
-		IF you want to specify the Paths directly you can do
-			
-			powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'-BASE_MOVIE_DIR "C:\PATH"
-		
-		IF you want to disable/enable loggin
-			
-			powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'-LOGG "NO/YES"
-		
-		IF you want to alter the winRAR path
-			
-			powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'-WINRAR "D:\PATH_TO_WINRAR"			
-	
-	@TODO: 
-		
-		Tv Episodes that are DVDrips probebly has an IMDB link and not a
-		TvRage link, wich means that the TV Show DVDrip is treated as a 
-		Movie. This should be fixed later somehow.
-	
-	@DEPENDENCIES: 
-		
-		\bin\mklnk.exe (included), winRAR (not included), uTorrent	
-		mklnk is Copyright (c) 2005-2006 Ross Smith II (http://smithii.com) All Rights Reserved
-	
-	
-	@INFORMATION:
-		
-		So, almost everybody run Windows 7 or Vista these days. If you do, Powershell is inlcuded and to test that
-		you have it installed, open a command promt (run -> cmd) and type powershell $psversiontable
-		
-		Output:
-		
-		C:\Windows\System32>powershell $psversiontable
-		
-		Name                           Value
-		----                           -----
-		PSVersion                      2.0
-		
-		So, if this works, and PSVersion = 2.0 we are good to go.
-		
-		THEN:
-		
-		Type> Get-ExecutionPolicy
-		Output> Restricted
-		
-		If the output says Restricted, it means that the default value is still set. Change this by doing
-		
-		Type> Set-ExecutionPolicy RemoteSigned
-		Read more here: http://technet.microsoft.com/en-us/library/ee176949.aspx
-		
-		Else:
-		
-		goto http://support.microsoft.com/kb/968929
-		scroll to
-		Windows Management Framework Core (WinRM 2.0 and Windows PowerShell 2.0)
-		Download for your windows version
-		Install
-		OR: 
-		Do a system update. It should be included.
-
-.LINK
-	.
-	@SCREENCASTs:
-		@How it operates
-			http://www.swfcabin.com/open/1296763224
-		@How to set Execution Policy
-			http://www.swfcabin.com/open/1296731645	
-			
-
-#>
-
-
