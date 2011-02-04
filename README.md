@@ -1,7 +1,7 @@
 SYNOPSIS 
 ========
 
-Automates the logic of sorting downloaded movie and tv torrents.
+The (u)TorrentSorter Automates the logic of sorting downloaded movies, music and tv torrents. At the bottom you can watch screencasts on how it operates. The (u) -eq X and that means that it should work for any  torrent client you can get to run scripts onComplete. 
 
 DESCRIPTION
 ===========
