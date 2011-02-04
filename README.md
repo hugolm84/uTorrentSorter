@@ -10,32 +10,34 @@ DESCRIPTION
 	uTORRENT onComplete run program 	
 ###Author:
 	ulf@flashback				
-###Usage:
 
-### ADD THIS in uTorrent	
+Usage:
+======
+
+###ADD THIS in uTorrent	
 
 > powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'	
----------------------------------------------------------------------------
+
 ### OR THIS if you want to read the output
 
 > powershell.exe C:\PathToThisSCRIPT.ps1 -noexit -TORRENT_NAME '%N' -TORRENT_DIR '%D'	
------------------------------------------------------------------------------------
+
 ### IF you want to specify the Paths directly you can do
 
 > powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'-BASE_MOVIE_DIR "C:\PATH"
-------------------------------------------------------------------------------------------------------
+
 IF you want to disable/enable loggin
 
 > powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'-LOGG "NO/YES"
--------------------------------------------------------------------------------------------
+
 IF you want to alter the winRAR path
 
 > powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'-WINRAR "D:\PATH_TO_WINRAR"
---------------------------------------------------------------------------------------------------------		
+	
 To get more information about the PARAMS
 
 > powershell get-help .\PathTOScript.ps1 -detailed
---------------------------------------------------
+
 Todo: 
 -----
 Tv Episodes that are DVDrips probebly has an IMDB link and not a
