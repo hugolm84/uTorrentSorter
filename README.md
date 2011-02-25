@@ -1,9 +1,13 @@
 SYNOPSIS 
 ========
 
-The (u)TorrentSorter Automates the logic of sorting downloaded torrents It sorts practically every known type like movies, music, games, tv shows, mvid, mdvdr, xxx and so on, by title, genre, year, group, cast, studio, labels etc.
-You can easily add new types in the script.  At the bottom you can watch screencasts on how it operates. The (u) -eq X and that means that it should work for any  torrent client you can get to run scripts onComplete. 
-
+The (u)TorrentSorter Automates the logic of sorting downloaded torrents.
+### What it sorts
+It sorts practically every known type like movies, music, games, tv shows, mvid, mdvdr, xxx and so on, by title, genre, year, group, cast, studio, labels etc.
+### Can i add types?
+You can easily add new types in the script.  
+### Nukes?
+If enabled the script can check if the rls is a nuke, then handle that by removing it or renaming it with the nuke reason.
 USAGE
 ======
 
