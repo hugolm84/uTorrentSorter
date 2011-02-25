@@ -1,52 +1,20 @@
 SYNOPSIS 
 ========
 
-The (u)TorrentSorter Automates the logic of sorting downloaded movies, music and tv torrents. At the bottom you can watch screencasts on how it operates. The (u) -eq X and that means that it should work for any  torrent client you can get to run scripts onComplete. 
-
-DESCRIPTION
-===========
-###Type:
-POWERSHELL 2.0									
-###What:
-uTORRENT onComplete run program 	
-###Author:
-ulf@flashback				
+The (u)TorrentSorter Automates the logic of sorting downloaded torrents It sorts practically every known type like movies, music, games, tv shows, mvid, mdvdr, xxx and so on, by title, genre, year, group, cast, studio, labels etc.
+You can easily add new types in the script.  At the bottom you can watch screencasts on how it operates. The (u) -eq X and that means that it should work for any  torrent client you can get to run scripts onComplete. 
 
 USAGE
 ======
 
-###ADD THIS in uTorrent	
+###ADD THIS in your torrentclient	
 
-	> powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'	
+	> powershell.exe C:\path\to\torrentSorter.ps1 -DIR '%D'
 
-###OR THIS if you want to read the output
-
-	> powershell.exe C:\PathToThisSCRIPT.ps1 -noexit -TORRENT_NAME '%N' -TORRENT_DIR '%D'	
-
-###IF you want to specify the Paths directly you can do
-
-	> powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'-BASE_MOVIE_DIR "C:\PATH"
-
-###IF you want to disable/enable loggin
-
-	> powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'-LOGG "NO/YES"
-
-###IF you want to alter the winRAR path
-
-	> powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D'-WINRAR "D:\PATH_TO_WINRAR"
-	
-###IF you want to turn off Unpacking
-
-	> powershell.exe C:\PathToThisSCRIPT.ps1 -TORRENT_NAME '%N' -TORRENT_DIR '%D' -UNRAR "NO"
-	
 ###To get more information about the PARAMS
 
-	> powershell get-help .\PathTOScript.ps1 -detailed
+	> powershell get-help .\path\to\torrentSorter.ps1 -detailed
 
-TODO
-=====
-Tv Episodes that are DVDrips probebly has an IMDB link and not a TvRage link, wich means that the TV Show DVDrip is treated as a Movie. 
-This should be fixed later somehow.
 
 DEPENDENCIES
 ============
@@ -109,9 +77,3 @@ LINKS
 ====
 ###Github:
 	https://github.com/mline/uTorrentSorter
-###Screencasts:
-####How it operates
-	http://www.swfcabin.com/open/1296763224
-	http://www.swfcabin.com/open/1296814280
-####How to set Execution Policy
-	http://www.swfcabin.com/open/1296731645
