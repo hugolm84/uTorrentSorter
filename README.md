@@ -8,6 +8,33 @@ It sorts practically every known type like movies, music, games, tv shows, mvid,
 You can easily add new types in the script.  
 ### Does it handle Nukes?
 Yes, If enabled the script can check if the rls is a nuke, then handle that by removing it or renaming it with the nuke reason.
+### Params
+
+PARAMETERS
+    -DIR <String>
+        This is the DirName of the torrentParameter sent from the Client
+
+    -TEST_NUKE <Object>
+        Want to test for nukes? Will add nuke reason (if any) to symlink
+
+    -REMOVE_NUKE <Object>
+        If the rls is a nuke, remove it and exit?
+
+    -SORT_BY_RLS_TYPE <Object>
+        Want to sort by Movie/DVDR/by_genre, /Movie/Xvid/by_genre ?
+
+    -UNPACK <Object>
+        Want to automatically unpack the rls?
+
+    -BASE_DIR <Object>
+        Set the basedir for sorting
+
+    -WINRAR <Object>
+        Specify the winrar path
+
+    -SORT_PREFIX <Object>
+        Set prefix for sorting folder
+
 USAGE
 ======
 
