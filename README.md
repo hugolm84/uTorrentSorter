@@ -4,6 +4,7 @@ SYNOPSIS
 The (u)TorrentSorter Automates the logic of sorting downloaded torrents.
 ### What it sorts
 It sorts practically every known type like movies, music, games, tv shows, mvid, mdvdr, xxx and so on, by title, genre, year, group, cast, studio, labels etc.
+It will only create symlinks to your actual data and not copy them 
 ### Can i add types?
 You can easily add new types in the script.  
 ### Does it handle Nukes?
